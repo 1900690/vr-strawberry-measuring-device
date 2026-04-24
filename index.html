@@ -19,8 +19,8 @@
           "webgl-sdf-generator": "https://esm.sh/webgl-sdf-generator@1.1.1/es2022/webgl-sdf-generator.mjs",
           "lit": "https://cdn.jsdelivr.net/gh/lit/dist@3/core/lit-core.min.js",
           "lit/": "https://esm.run/lit@3/",
-          "xrblocks": "https://cdn.jsdelivr.net/npm/xrblocks@0.10.0/build/xrblocks.js",
-          "xrblocks/addons/": "https://cdn.jsdelivr.net/npm/xrblocks@0.10.0/build/addons/"
+          "xrblocks": "https://cdn.jsdelivr.net/npm/xrblocks@0.11.0/build/xrblocks.js",
+          "xrblocks/addons/": "https://cdn.jsdelivr.net/npm/xrblocks@0.11.0/build/addons/"
         }
       }
     </script>
@@ -70,8 +70,9 @@
             height: 0.7,
             backgroundColor: '#1a1a1add'
           });
-          // パネルをユーザーの正面やや上部に配置
-          this.panel.position.set(0, 1.6, -1.2);
+          
+          // 初期位置（updateメソッド内でカメラに追従させます）
+          this.panel.position.set(0, 1.8, -1.2);
           this.add(this.panel);
 
           const grid = this.panel.addGrid();
@@ -85,6 +86,18 @@
         }
 
         update() {
+          // --- 5. UIパネルのヘッドトラッキング（頭への追従） ---
+          const camera = xb.core.camera;
+          // カメラから奥に1.2m、上に0.3m（手が被らないように高めに設定）
+          const targetOffset = new THREE.Vector3(0, 0.3, -1.2);
+          const targetPosition = targetOffset.applyMatrix4(camera.matrixWorld);
+
+          // 位置と回転を滑らかにカメラに追従させる
+          this.panel.position.lerp(targetPosition, 0.08);
+          this.panel.quaternion.slerp(camera.quaternion, 0.08);
+
+
+          // --- 6. ハンドトラッキングと測定ロジック ---
           const hands = xb.user.hands;
           // 手がトラッキングされているか確認
           if (hands && hands.hands && hands.hands.length > 0) {
@@ -155,6 +168,7 @@
         const options = new xb.Options();
         options.enableUI();
         options.enableHands();
+        options.setAppTitle('Strawberry Weigher');
         
         // ハンドトラッキングを有効にしつつ、手やジョイントの白いボックスは非表示にする
         options.hands.enabled = true;
